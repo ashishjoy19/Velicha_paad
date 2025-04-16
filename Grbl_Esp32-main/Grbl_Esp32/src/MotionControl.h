@@ -70,9 +70,6 @@ void mc_parking_motion(float* parking_target, plan_line_data_t* pl_data);
 // Performs system reset. If in motion state, kills all motion and sets system alarm.
 void mc_reset();
 
-// Handle RGB LED commands for end effector
-void handle_rgb_led_command(RgbLedCmd cmd, uint32_t color);
-
 enum class SquaringMode : uint8_t {
     Dual,  // both motors run
     A,     // A motor runs
@@ -80,3 +77,5 @@ enum class SquaringMode : uint8_t {
 };
 
 extern SquaringMode ganged_mode;
+
+void mc_rgb_controll(plan_line_data_t* pl_data);

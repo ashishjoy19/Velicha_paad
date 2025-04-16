@@ -44,7 +44,6 @@ void grbl_init() {
     init_motors();
     memset(sys_position, 0, sizeof(sys_position));  // Clear machine position.
     machine_init();                                 // weak definition in Grbl.cpp does nothing
-    initSerial2();
     // Initialize system state.
 #ifdef FORCE_INITIALIZATION_ALARM
     // Force Grbl into an ALARM state upon a power-cycle or hard reset.

@@ -24,6 +24,8 @@
 const char* const GRBL_VERSION       = "1.3a";
 const char* const GRBL_VERSION_BUILD = "20211103";
 
+#define USE_SERIAL Serial1
+
 //#include <sdkconfig.h>
 #include <Arduino.h>
 #include <EEPROM.h>
@@ -65,6 +67,7 @@ const char* const GRBL_VERSION_BUILD = "20211103";
 #include "WebUI/WebSettings.h"
 
 #include "UserOutput.h"
+
 #include "Serial2.h"
 
 #include <Wire.h>

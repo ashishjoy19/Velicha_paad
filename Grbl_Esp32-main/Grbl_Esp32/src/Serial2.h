@@ -1,15 +1,10 @@
+// Serial2Communication.h
 #pragma once
-#include<Arduino.h>
 
-#define TX2 22
-#define RX2 32
+// Define UART2 pins
+#define RXD2 32
+#define TXD2 22
 
+// Function declarations
 void initSerial2();
-
 void sendMessage(const char* message);
-
-bool waitforOK(unsigned long timeout);
-
-bool waitForModMessage(unsigned long timeout);
-
-void send_colour_data(uint32_t colour_code);

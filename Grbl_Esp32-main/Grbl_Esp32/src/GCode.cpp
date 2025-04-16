@@ -135,7 +135,7 @@ Error gc_execute_line(char* line, uint8_t client) {
        values struct, word tracking variables, and a non-modal commands tracker for the new
        block. This struct contains all of the necessary information to execute the block. */
     memset(&gc_block, 0, sizeof(parser_block_t));                  // Initialize the parser block struct.
-    memcpy(&gc_block.modal, &gc_state.modal, sizeof(gc_modal_t));  // Copy current modes including rgb_led mode
+    memcpy(&gc_block.modal, &gc_state.modal, sizeof(gc_modal_t));  // Copy current modes
     AxisCommand axis_command = AxisCommand::None;
     uint8_t     axis_0, axis_1, axis_linear;
     CoordIndex  coord_select = CoordIndex::G54;  // Tracks G10 P coordinate selection for execution
@@ -171,6 +171,7 @@ Error gc_execute_line(char* line, uint8_t client) {
     uint8_t    char_counter;
     char       letter;
     float      value;
+    char32_t   color;
     uint8_t    int_value = 0;
     uint16_t   mantissa  = 0;
     if (gc_parser_flags & GCParserJogMotion) {
@@ -185,8 +186,20 @@ Error gc_execute_line(char* line, uint8_t client) {
             FAIL(Error::ExpectedCommandLetter);  // [Expected word letter]
         }
         char_counter++;
-        if (!read_float(line, &char_counter, &value)) {
-            FAIL(Error::BadNumberFormat);  // [Expected word value]
+        // Special handling for O#hex
+        if (letter == 'O' && line[char_counter] == '#') {
+            char hexstr[9] = {0}; // Enough for 8 hex digits + null
+            int hexlen = 0;
+            char_counter++; // skip '#'
+            while (isxdigit(line[char_counter]) && hexlen < 8) {
+                hexstr[hexlen++] = line[char_counter++];
+            }
+            hexstr[hexlen] = '\0';
+            value = (float)strtoul(hexstr, NULL, 16);
+        } else {
+            if (!read_float(line, &char_counter, &value)) {
+                FAIL(Error::BadNumberFormat);  // [Expected word value]
+            }
         }
         // Convert values to smaller uint8 significand and mantissa values for parsing this word.
         // NOTE: Mantissa is multiplied by 100 to catch non-integer command values. This is more
@@ -548,25 +561,30 @@ Error gc_execute_line(char* line, uint8_t client) {
                         mg_word_bit               = ModalGroup::MM10;
                         break;
                     case 201:
-                        gc_block.modal.rgb_led = RgbLedMode::Led1;
-                        mg_word_bit = ModalGroup::MM10;
+                        mg_word_bit               = ModalGroup::MM11;
+                        gc_block.modal.module     = Module::Brush1;
+                        axis_command              = AxisCommand::Module;
                         break;
                     case 202:
-                        gc_block.modal.rgb_led = RgbLedMode::Led2;
-                        mg_word_bit = ModalGroup::MM10;
+                        mg_word_bit               = ModalGroup::MM11;
+                        gc_block.modal.module     = Module::Brush2;
+                        axis_command              = AxisCommand::Module;
                         break;
                     case 203:
-                        gc_block.modal.rgb_led = RgbLedMode::Led3;
-                        mg_word_bit = ModalGroup::MM10;
+                        mg_word_bit               = ModalGroup::MM11;
+                        gc_block.modal.module     = Module::Brush3;
+                        axis_command              = AxisCommand::Module;
                         break;
                     case 204:
-                        gc_block.modal.rgb_led = RgbLedMode::Led4;
-                        mg_word_bit = ModalGroup::MM10;
+                        mg_word_bit               = ModalGroup::MM11;
+                        gc_block.modal.module     = Module::Brush4;
+                        axis_command              = AxisCommand::Module;
                         break;
                     case 205:
-                        gc_block.modal.rgb_led = RgbLedMode::Off;
-                        mg_word_bit = ModalGroup::MM10;
-                        break;
+                        mg_word_bit               = ModalGroup::MM11;
+                        gc_block.modal.module     = Module::OFF;
+                        axis_command              = AxisCommand::Module;
+                        break;    
                     default:
                         FAIL(Error::GcodeUnsupportedCommand);  // [Unsupported M command]
                 }
@@ -646,14 +664,6 @@ Error gc_execute_line(char* line, uint8_t client) {
                         axis_word_bit     = GCodeWord::N;
                         gc_block.values.n = trunc(value);
                         break;
-                    case 'O': // RGB LED hex color parameter
-                        axis_word_bit = GCodeWord::O;
-                        // Check if this is a valid hex color code (0x000000 to 0xFFFFFF)
-                        if (value < 0 || value > 0xFFFFFF) {
-                            FAIL(Error::RgbLedValueOutOfRange);
-                        }
-                        gc_block.values.o = uint32_t(value);
-                        break;
                     case 'P':
                         axis_word_bit     = GCodeWord::P;
                         gc_block.values.p = value;
@@ -706,6 +716,24 @@ Error gc_execute_line(char* line, uint8_t client) {
                         } else {
                             FAIL(Error::GcodeUnsupportedCommand);
                         }
+                        break;
+                    case 'O':
+                        axis_word_bit = GCodeWord::O;
+                        // Support O as a float or as a hex string (e.g., O#FF1100)
+                        if (line[char_counter] == '#') {
+                            // Parse hex value after '#'
+                            char hexstr[9] = {0}; // Enough for 8 hex digits + null
+                            int hexlen = 0;
+                            char_counter++; // skip '#'
+                            while (isxdigit(line[char_counter]) && hexlen < 8) {
+                                hexstr[hexlen++] = line[char_counter++];
+                            }
+                            hexstr[hexlen] = '\0';
+                            gc_block.values.o = (uint32_t)strtoul(hexstr, NULL, 16);
+                        } else {
+                            gc_block.values.o = value;
+                        }
+
                         break;
                     default:
                         FAIL(Error::GcodeUnsupportedCommand);
@@ -859,14 +887,6 @@ Error gc_execute_line(char* line, uint8_t client) {
         }
         bit_false(value_words, bit(GCodeWord::E));
         bit_false(value_words, bit(GCodeWord::Q));
-    }
-    // Handle RGB LED M-code error checking
-    if (gc_block.modal.rgb_led != RgbLedMode::Off) {
-        // Check that a valid O word exists when setting an LED
-        if (bit_isfalse(value_words, bit(GCodeWord::O))) {
-            FAIL(Error::GcodeValueWordMissing); // O word required for LED control
-        }
-        bit_false(value_words, bit(GCodeWord::O)); // Clear the O word after using it
     }
     // [11. Set active plane ]: N/A
     switch (gc_block.modal.plane_select) {
@@ -1298,6 +1318,19 @@ Error gc_execute_line(char* line, uint8_t client) {
     if (value_words) {
         FAIL(Error::GcodeUnusedWords);  // [Unused words]
     }
+
+    switch (gc_block.modal.module) {
+        case Module::Brush1:
+        case Module::Brush2:
+        case Module::Brush3:
+        case Module::Brush4:
+        case Module::OFF:
+        // grbl_send(client, "error check\n");
+            break;
+        default:
+            FAIL(Error::GcodeUnsupportedCommand);  // Undefined command or parameter
+    }
+    
     /* -------------------------------------------------------------------------------------
        STEP 4: EXECUTE!!
        Assumes that all error-checking has been completed and no failure modes exist. We just
@@ -1457,35 +1490,6 @@ Error gc_execute_line(char* line, uint8_t client) {
             }
         } else {
             FAIL(Error::PParamMaxExceeded);
-        }
-    }
-
-    // Update RGB LED state
-    if (gc_state.modal.rgb_led != gc_block.modal.rgb_led) {
-        gc_state.modal.rgb_led = gc_block.modal.rgb_led;
-        
-        // Handle each mode directly with the new RgbLedCmd enum
-        switch (gc_state.modal.rgb_led) {
-            case RgbLedMode::Off:
-                handle_rgb_led_command(RgbLedCmd::Off, 0);
-                gc_state.rgb_color = 0;
-                break;
-            case RgbLedMode::Led1:
-                handle_rgb_led_command(RgbLedCmd::Led1, gc_block.values.o);
-                gc_state.rgb_color = gc_block.values.o;
-                break;
-            case RgbLedMode::Led2:
-                handle_rgb_led_command(RgbLedCmd::Led2, gc_block.values.o);
-                gc_state.rgb_color = gc_block.values.o;
-                break;
-            case RgbLedMode::Led3:
-                handle_rgb_led_command(RgbLedCmd::Led3, gc_block.values.o);
-                gc_state.rgb_color = gc_block.values.o;
-                break;
-            case RgbLedMode::Led4:
-                handle_rgb_led_command(RgbLedCmd::Led4, gc_block.values.o);
-                gc_state.rgb_color = gc_block.values.o;
-                break;
         }
     }
 
@@ -1672,21 +1676,21 @@ Error gc_execute_line(char* line, uint8_t client) {
             user_m30();
             break;
     }
-    gc_state.modal.program_flow = ProgramFlow::Running;  // Reset program flow.
 
-    // Update RGB LED state
-    if (gc_state.modal.rgb_led != gc_block.modal.rgb_led) {
-        gc_state.modal.rgb_led = gc_block.modal.rgb_led;
+    if(axis_command == AxisCommand::Module)
+    {
+        // USE_SERIAL.print(" Execute part ");
+        pl_data->brush = static_cast<uint8_t>(gc_block.modal.module);
+        pl_data->motion.rapidMotion = 1;  // Set rapid motion flag.
+        pl_data->color = static_cast<char32_t>(gc_block.values.o);
         
-        // Only update color if LED is enabled
-        if (gc_state.modal.rgb_led != RgbLedMode::Off) {
-            // Store hex color value for execution
-            gc_state.rgb_color = gc_block.values.o;
-        } else {
-            gc_state.rgb_color = 0; // Clear color when LED is off
-        }
-        
+        plan_buffer_line(last_position,pl_data); // Send the brush command to the planner.
+        protocol_buffer_synchronize();
+
+        mc_rgb_controll(pl_data);
     }
+
+    gc_state.modal.program_flow = ProgramFlow::Running;  // Reset program flow.
 
     // TODO: % to denote start of program.
     return Error::Ok;

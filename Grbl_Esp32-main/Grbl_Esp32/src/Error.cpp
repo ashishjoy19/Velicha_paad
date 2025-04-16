@@ -60,7 +60,6 @@ std::map<Error, const char*> ErrorNames = {
     { Error::GcodeUnusedWords, "Gcode unused words" },
     { Error::GcodeG43DynamicAxisError, "Gcode G43 dynamic axis error" },
     { Error::GcodeMaxValueExceeded, "Gcode max value exceeded" },
-    { Error::RgbLedValueOutOfRange, "RGB LED hex value out of valid range" },
     { Error::PParamMaxExceeded, "P param max exceeded" },
     { Error::FsFailedMount, "Failed to mount device" },
     { Error::FsFailedRead, "Failed to read" },

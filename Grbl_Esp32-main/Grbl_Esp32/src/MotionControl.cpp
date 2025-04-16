@@ -24,6 +24,7 @@
 
 #include "Grbl.h"
 
+
 // M_PI is not defined in standard C/C++ but some compilers
 // support it anyway.  The following suppresses Intellisense
 // problem reports.
@@ -546,99 +547,23 @@ void mc_reset() {
     }
 }
 
-// Send RGB LED command to end effector via Serial2 and wait for acknowledgment
-static bool wait_for_led_ack() {
-    // COMMENTED OUT: Wait for acknowledgment functionality
-    /*
-    // Wait up to 100ms for acknowledgment
-    uint32_t timeout = millis() + 1000; // Increase timeout to 1 second for better reliability
-    
-    Serial.println("DEBUG: Waiting for acknowledgment from RGB LED controller...");
-    String buffer = "";
-    
-    while (millis() < timeout) {
-        while (Serial2.available()) {
-            char c = Serial2.read();
-            buffer += c;
-            Serial.print("DEBUG: Received byte: "); 
-            Serial.print(c);
-            Serial.print(" (");
-            Serial.print((int)c);
-            Serial.println(")");
-            
-            if (buffer.endsWith("ok")) {
-                Serial.print("DEBUG: Received full response: '");
-                Serial.print(buffer);
-                Serial.println("'");
-                return true;
-            }
-        }
-        delay(10); // Small delay to prevent tight loop
-        protocol_execute_realtime(); // Keep processing realtime commands
-        if (sys.abort) return false;
-    }
-    
-    Serial.println("DEBUG: Timeout waiting for RGB LED acknowledgment");
-    if (buffer.length() > 0) {
-        Serial.print("DEBUG: Partial response received: '");
-        Serial.print(buffer);
-        Serial.println("'");
-    }
-    return false; // Timeout without acknowledgment
-    */
-    
-    // Simply return true without waiting for acknowledgment
-    Serial.println("DEBUG: Acknowledgment wait disabled");
-    return true;
-}
+void mc_rgb_controll(plan_line_data_t* pl_data) {
+    grbl_send(CLIENT_SERIAL, "Motioncontroll\n");
+    plan_reset();  // Reset planner buffer. Zero planner positions. Ensure probing motion is cleared.
+    plan_sync_position();  // Sync planner position to current machine position.
+    char buffer[32];
 
-// Send RGB LED command to end effector via Serial2
-void handle_rgb_led_command(RgbLedCmd cmd, uint32_t color) {
-    const char* cmdStr = nullptr;
-    bool ack = false;
-    
-    // Log the incoming command and color value directly to Serial
-    Serial.print("DEBUG: RGB LED Command: ");
-    Serial.print(static_cast<int>(cmd));
-    Serial.print(", Color Value: 0x");
-    Serial.print(color, HEX);
-    Serial.print(" (");
-    Serial.print(color);
-    Serial.println(" decimal)");
-    
-    switch (cmd) {
-        case RgbLedCmd::Led1:
-            cmdStr = "M201 O%06X\n";
-            break;
-        case RgbLedCmd::Led2:
-            cmdStr = "M202 O%06X\n";
-            break;
-        case RgbLedCmd::Led3:
-            cmdStr = "M203 O%06X\n";
-            break;
-        case RgbLedCmd::Led4:
-            cmdStr = "M204 O%06X\n";
-            break;
-        case RgbLedCmd::Off:
-            Serial.println("DEBUG: Sending: M205");
-            Serial2.print("M205\n");
-            ack = wait_for_led_ack();
-            Serial.print("DEBUG: LED Command ACK: ");
-            Serial.println(ack ? "Received" : "Timeout");
-            return;
-        default:
-            Serial.println("DEBUG: Unknown RGB LED command");
-            return;
+    if (pl_data->brush >=201 && pl_data->brush <= 204){
+        sprintf(buffer, "M%d #%06X", pl_data->brush, (unsigned int)pl_data->color);
+        sendMessage(buffer);
     }
-    
-    if (cmdStr) {
-        char buf[32];
-        snprintf(buf, sizeof(buf), cmdStr, color);
-        Serial.print("DEBUG: Sending: ");
-        Serial.println(buf);
-        Serial2.print(buf);
-        ack = wait_for_led_ack();
-        Serial.print("DEBUG: LED Command ACK: ");
-        Serial.println(ack ? "Received" : "Timeout");
+
+    if (pl_data->brush >= 205)
+    {
+        sprintf(buffer, "M%d", pl_data->brush);
+        sendMessage(buffer);
     }
+
+    protocol_buffer_synchronize(); 
+
 }

@@ -49,6 +49,7 @@ enum class ModalGroup : uint8_t {
     MM8  = 13,  // [M7,M8,M9] Coolant control
     MM9  = 14,  // [M56] Override control
     MM10 = 15,  // [M62, M63, M64, M65, M67, M68] User Defined http://linuxcnc.org/docs/html/gcode/overview.html#_modal_groups
+    MM11 = 16,  // [M201-5] Module control
 };
 
 // Command actions for within execution-type modal groups (motion, stopping, non-modal). Used
@@ -174,24 +175,6 @@ enum class IoControl : uint8_t {
     SetAnalogImmediate  = 6,  // M68
 };
 
-// Modal Group M10: RGB LED control
-enum class RgbLedMode : uint8_t {
-    Off     = 0,  // Default: Must be zero
-    Led1    = 1,  // M201
-    Led2    = 2,  // M202  
-    Led3    = 3,  // M203
-    Led4    = 4,  // M204
-};
-
-// RGB LED command enumeration
-enum class RgbLedCmd : uint8_t {
-    Off = 0,  // LED Off
-    Led1 = 1, // LED 1 command
-    Led2 = 2, // LED 2 command
-    Led3 = 3, // LED 3 command
-    Led4 = 4, // LED 4 command
-};
-
 static const int MaxUserDigitalPin = 4;
 
 // Modal Group G8: Tool length offset
@@ -210,25 +193,25 @@ enum class ToolChange : uint8_t {
 
 // Parameter word mapping.
 enum class GCodeWord : uint8_t {
-    E = 0,  // M67
-    F = 1,  // Feed
-    I = 2,  // IJK Axis arc offset
-    J = 3,  // IJK Axis arc offset
-    K = 4,  // IJK Axis arc offset
-    L = 5,  // G10 or canned cycles parameters
-    N = 6,  // Line number
-    O = 7,  // RGB LED hex color value
-    P = 8,  // G10 or dwell parameters
-    Q = 9,  // M67
-    R = 10, // Arc radius
-    S = 11, // Spindle speed
-    T = 12, // Tool selection
-    X = 13, // X Axis
-    Y = 14, // Y Axis
-    Z = 15, // Z Axis
-    A = 16, // A Axis
-    B = 17, // B Axis
-    C = 18, // C Axis
+    E = 0,
+    F = 1,
+    I = 2,
+    J = 3,
+    K = 4,
+    L = 5,
+    N = 6,
+    P = 7,
+    Q = 8,
+    R = 9,
+    S = 10,
+    T = 11,
+    X = 12,
+    Y = 13,
+    Z = 14,
+    A = 15,
+    B = 16,
+    C = 17,
+    O = 18,
 };
 
 // GCode parser position updating flags
@@ -249,6 +232,14 @@ enum GCParserFlags {
     GCParserLaserForceSync = bit(5),
     GCParserLaserDisable   = bit(6),
     GCParserLaserIsMotion  = bit(7),
+};
+
+enum Module : uint8_t {
+    OFF=0,
+    Brush1=1,
+    Brush2=2,
+    Brush3=3,
+    Brush4=4,
 };
 
 // Various places in the code access saved coordinate system data
@@ -295,7 +286,8 @@ typedef struct {
     ToolChange   tool_change;   // {M6}
     IoControl    io_control;    // {M62, M63, M67}
     Override     override;      // {M56}
-    RgbLedMode  rgb_led;       // {M201-M205}
+    Module       module;       // {M56}
+
 } gc_modal_t;
 
 typedef struct {
@@ -310,7 +302,7 @@ typedef struct {
     float   s;                // Spindle speed
     uint8_t t;                // Tool selection
     float   xyz[MAX_N_AXIS];  // X,Y,Z Translational axes
-    uint32_t o;               // RGB LED hex color value
+    float o;               // RGB color value for LED
 } gc_values_t;
 
 typedef struct {
@@ -328,7 +320,6 @@ typedef struct {
     float coord_offset[MAX_N_AXIS];  // Retains the G92 coordinate offset (work coordinates) relative to
     // machine zero in mm. Non-persistent. Cleared upon reset and boot.
     float tool_length_offset;  // Tracks tool length offset value when enabled.
-    uint32_t rgb_color;  // Current RGB LED color value (24-bit)
 } parser_state_t;
 extern parser_state_t gc_state;
 
@@ -337,6 +328,7 @@ typedef struct {
     gc_modal_t   modal;
     gc_values_t  values;
     GCodeCoolant coolant;
+
 } parser_block_t;
 
 enum class AxisCommand : uint8_t {
@@ -344,6 +336,7 @@ enum class AxisCommand : uint8_t {
     NonModal         = 1,
     MotionMode       = 2,
     ToolLengthOffset = 3,
+    Module           = 4,
 };
 
 // Initialize the parser

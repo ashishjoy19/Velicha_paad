@@ -63,8 +63,7 @@ enum class Error : uint8_t {
     GcodeUnusedWords            = 36,
     GcodeG43DynamicAxisError    = 37,
     GcodeMaxValueExceeded       = 38,
-    RgbLedValueOutOfRange       = 39,  // RGB LED hex value out of valid range 
-    PParamMaxExceeded           = 40,
+    PParamMaxExceeded           = 39,
     FsFailedMount               = 60,  // SD Failed to mount
     FsFailedRead                = 61,  // SD Failed to read file
     FsFailedOpenDir             = 62,  // SD card failed to open directory

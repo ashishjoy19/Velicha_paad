@@ -289,7 +289,7 @@ static const uint8_t NHomingLocateCycle = 1;  // Integer (1-128)
 // ADVANCED CONFIGURATION OPTIONS:
 
 // Enables code for debugging purposes. Not for general use and always in constant flux.
-#define DEBUG // Uncomment to enable. Default disabled.
+// #define DEBUG // Uncomment to enable. Default disabled.
 
 // Configure rapid, feed, and spindle override settings. These values define the max and min
 // allowable override values and the coarse and fine increments per command received. Please
@@ -394,12 +394,12 @@ const int TOOL_LENGTH_OFFSET_AXIS = Z_AXIS;  // Default z-axis. Valid values are
 // NOTE: Only use this for debugging purposes!! When echoing, this takes up valuable resources and can effect
 // performance. If absolutely needed for normal operation, the serial write buffer should be greatly increased
 // to help minimize transmission waiting within the serial write protocol.
-//#define REPORT_ECHO_LINE_RECEIVED // Default disabled. Uncomment to enable.
+#define REPORT_ECHO_LINE_RECEIVED // Default disabled. Uncomment to enable.
 
 // This is similar to REPORT_ECHO_LINE_RECEIVED and subject to all its caveats,
 // but instead of echoing the pre-parsed line, it echos the raw line exactly as
 // received, including not only GCode lines, but also $ and [ESP commands.
-//#define REPORT_ECHO_RAW_LINE_RECEIVED // Default disabled. Uncomment to enable.
+#define REPORT_ECHO_RAW_LINE_RECEIVED // Default disabled. Uncomment to enable.
 
 // Minimum planner junction speed. Sets the default minimum junction speed the planner plans to at
 // every buffer block junction, except for starting from rest and end of the buffer, which are always
