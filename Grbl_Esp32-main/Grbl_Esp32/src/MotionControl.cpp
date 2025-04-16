@@ -548,19 +548,48 @@ void mc_reset() {
 
 // Send RGB LED command to end effector via Serial2 and wait for acknowledgment
 static bool wait_for_led_ack() {
+    // COMMENTED OUT: Wait for acknowledgment functionality
+    /*
     // Wait up to 100ms for acknowledgment
-    uint32_t timeout = millis() + 100;
+    uint32_t timeout = millis() + 1000; // Increase timeout to 1 second for better reliability
+    
+    Serial.println("DEBUG: Waiting for acknowledgment from RGB LED controller...");
+    String buffer = "";
+    
     while (millis() < timeout) {
-        if (Serial2.available()) {
-            String response = Serial2.readStringUntil('\n');
-            if (response.startsWith("ok")) {
+        while (Serial2.available()) {
+            char c = Serial2.read();
+            buffer += c;
+            Serial.print("DEBUG: Received byte: "); 
+            Serial.print(c);
+            Serial.print(" (");
+            Serial.print((int)c);
+            Serial.println(")");
+            
+            if (buffer.endsWith("ok")) {
+                Serial.print("DEBUG: Received full response: '");
+                Serial.print(buffer);
+                Serial.println("'");
                 return true;
             }
         }
+        delay(10); // Small delay to prevent tight loop
         protocol_execute_realtime(); // Keep processing realtime commands
         if (sys.abort) return false;
     }
+    
+    Serial.println("DEBUG: Timeout waiting for RGB LED acknowledgment");
+    if (buffer.length() > 0) {
+        Serial.print("DEBUG: Partial response received: '");
+        Serial.print(buffer);
+        Serial.println("'");
+    }
     return false; // Timeout without acknowledgment
+    */
+    
+    // Simply return true without waiting for acknowledgment
+    Serial.println("DEBUG: Acknowledgment wait disabled");
+    return true;
 }
 
 // Send RGB LED command to end effector via Serial2

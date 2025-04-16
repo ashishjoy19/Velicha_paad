@@ -2,25 +2,26 @@
 #include "Arduino.h"
 
 void initSerial2() {
-
+    // Define the baud rate once to avoid conflicts
+    const uint32_t LED_BAUD_RATE = 115200; // Use the correct baud rate for your device
+    
     // Configure the UART2 port (Serial2)
-    Serial2.begin(9600, SERIAL_8N1, RX2, TX2);
-
+    Serial2.begin(LED_BAUD_RATE, SERIAL_8N1, RX2, TX2);
+    
     // Give some time for the serial to initialize
-    delay(10000);
-
-    Serial.println("initialised");
-
+    delay(1000);
+    
+    Serial.println("Serial2 initialized at " + String(LED_BAUD_RATE) + " baud");
+    
     // Wait for "ok" message from Serial2
-    if (waitForModMessage(10000)) { // 5000ms timeout
-        Serial.println("Received multipen module from Serial2");
+    if (waitForModMessage(5000)) { // 5000ms timeout
+        Serial.println("Received 'multipen module' from Serial2");
         Serial2.println("ok");
     } else {
-        Serial.println("Timeout waiting for 'ok' from Serial2");
+        Serial.println("Timeout waiting for 'multipen module' from Serial2");
     }
     
-    // Initialize Serial2 for RGB LED communication
-    Serial2.begin(115200);  // Use the same baud rate as your end effector expects
+    // No need to reinitialize Serial2 - we'll keep using the same baud rate
 }
 
 void sendMessage(const char* message) {
