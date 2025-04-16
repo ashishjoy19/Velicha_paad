@@ -23,9 +23,6 @@
 */
 
 #include "Grbl.h"
-#include "Report.h"
-#include "Arduino.h"
-
 
 // Allow iteration over CoordIndex values
 CoordIndex& operator++(CoordIndex& i) {
@@ -57,35 +54,6 @@ void gc_init() {
 // limit pull-off routines.
 void gc_sync_position() {
     system_convert_array_steps_to_mpos(gc_state.position, sys_position);
-}
-
-static uint32_t parseHexColor(const char* str) {
-    if (!str || !*str) {
-        return 0;
-    }
-    
-    // Skip '#' if present
-    if (*str == '#') {
-        str++;
-    }
-    
-    uint32_t color = 0;
-    while(*str) {
-        char c = *str++;
-        color <<= 4;
-        
-        if (c >= '0' && c <= '9') {
-            color |= (c - '0');
-        } else if (c >= 'A' && c <= 'F') {
-            color |= (c - 'A' + 10);
-        } else if (c >= 'a' && c <= 'f') {
-            color |= (c - 'a' + 10);
-        } else {
-            // Invalid character
-            return 0;
-        }
-    }
-    return color;
 }
 
 // Edit GCode line in-place, removing whitespace and comments and
@@ -147,26 +115,6 @@ void collapseGCode(char* line) {
     *outPtr = '\0';
 }
 
-// //Custom Mcode Handler Function - For custom MCODE M501,502,503,504
-// #include <HardwareSerial.h>
-// HardwareSerial ESPNowSerial(2); // TX=GPIO22, RX=GPIO21 (default for UART2)
-
-// void handle_custom_mcode(uint16_t mcode, const char *line) {
-//   const char* colorStart = strchr(line, '#');
-//   if (colorStart && strlen(colorStart) >= 7) {
-//     char colorCode[8] = {0}; // 7 chars + null terminator
-//     strncpy(colorCode, colorStart, 7);
-
-//     char message[20];
-//     snprintf(message, sizeof(message), "M%d %s", mcode, colorCode);
-//     ESPNowSerial.println(message);
-
-//     grbl_msg_sendf(CLIENT_ALL, MsgLevel::Info, "Sent: %s", message);
-// } else {
-//     grbl_msg_sendf(CLIENT_ALL, MsgLevel::Info, "Invalid color code format in M%d", mcode);
-// }
-// }
-
 // Executes one line of NUL-terminated G-Code.
 // The line may contain whitespace and comments, which are first removed,
 // and lower case characters, which are converted to upper case.
@@ -176,8 +124,6 @@ void collapseGCode(char* line) {
 Error gc_execute_line(char* line, uint8_t client) {
     // Step 0 - remove whitespace and comments and convert to upper case
     collapseGCode(line);
-
-
 #ifdef REPORT_ECHO_LINE_RECEIVED
     report_echo_line_received(line, client);
 #endif
@@ -189,7 +135,7 @@ Error gc_execute_line(char* line, uint8_t client) {
        values struct, word tracking variables, and a non-modal commands tracker for the new
        block. This struct contains all of the necessary information to execute the block. */
     memset(&gc_block, 0, sizeof(parser_block_t));                  // Initialize the parser block struct.
-    memcpy(&gc_block.modal, &gc_state.modal, sizeof(gc_modal_t));  // Copy current modes
+    memcpy(&gc_block.modal, &gc_state.modal, sizeof(gc_modal_t));  // Copy current modes including rgb_led mode
     AxisCommand axis_command = AxisCommand::None;
     uint8_t     axis_0, axis_1, axis_linear;
     CoordIndex  coord_select = CoordIndex::G54;  // Tracks G10 P coordinate selection for execution
@@ -505,7 +451,6 @@ Error gc_execute_line(char* line, uint8_t client) {
                 if (mantissa > 0) {
                     FAIL(Error::GcodeCommandValueNotInteger);  // [No Mxx.x commands]
                 }
-
                 switch (int_value) {
                     case 0:
                         // M0 - Pause
@@ -602,28 +547,26 @@ Error gc_execute_line(char* line, uint8_t client) {
                         gc_block.modal.io_control = IoControl::SetAnalogImmediate;
                         mg_word_bit               = ModalGroup::MM10;
                         break;
-                    
-                    //Adding custom M-Codes for light control
-                    
                     case 201:
-                        axis_command = AxisCommand::Module;
-                        mg_word_bit  = ModalGroup::MM11;
-                        gc_block.modal.module = Module::brush1;
+                        gc_block.modal.rgb_led = RgbLedMode::Led1;
+                        mg_word_bit = ModalGroup::MM10;
+                        break;
                     case 202:
-                    axis_command = AxisCommand::Module;
-                    mg_word_bit  = ModalGroup::MM11;
-                    gc_block.modal.module = Module::brush2;
+                        gc_block.modal.rgb_led = RgbLedMode::Led2;
+                        mg_word_bit = ModalGroup::MM10;
+                        break;
                     case 203:
-                    axis_command = AxisCommand::Module;
-                    mg_word_bit  = ModalGroup::MM11;
-                    gc_block.modal.module = Module::brush3;
+                        gc_block.modal.rgb_led = RgbLedMode::Led3;
+                        mg_word_bit = ModalGroup::MM10;
+                        break;
                     case 204:
-                    axis_command = AxisCommand::Module;
-                    mg_word_bit  = ModalGroup::MM11;
-                    gc_block.modal.module = Module::stop;
-
-                     
-                        
+                        gc_block.modal.rgb_led = RgbLedMode::Led4;
+                        mg_word_bit = ModalGroup::MM10;
+                        break;
+                    case 205:
+                        gc_block.modal.rgb_led = RgbLedMode::Off;
+                        mg_word_bit = ModalGroup::MM10;
+                        break;
                     default:
                         FAIL(Error::GcodeUnsupportedCommand);  // [Unsupported M command]
                 }
@@ -703,9 +646,13 @@ Error gc_execute_line(char* line, uint8_t client) {
                         axis_word_bit     = GCodeWord::N;
                         gc_block.values.n = trunc(value);
                         break;
-                    case 'O':
-                        axis_word_bit     = GCodeWord::O;
-                        gc_block.values.o = parseHexColor(&line[char_counter]);
+                    case 'O': // RGB LED hex color parameter
+                        axis_word_bit = GCodeWord::O;
+                        // Check if this is a valid hex color code (0x000000 to 0xFFFFFF)
+                        if (value < 0 || value > 0xFFFFFF) {
+                            FAIL(Error::RgbLedValueOutOfRange);
+                        }
+                        gc_block.values.o = uint32_t(value);
                         break;
                     case 'P':
                         axis_word_bit     = GCodeWord::P;
@@ -870,22 +817,6 @@ Error gc_execute_line(char* line, uint8_t client) {
             }  // Else, switching to G94 from G93, so don't push last state feed rate. Its undefined or the passed F word value.
         }
     }
-
-switch (gc_block.modal.module)
-{
-case Module::brush1:
-case Module::brush2:
-case Module::brush3:
-case Module::stop:
-
-    /* code */
-    break;
-
-default:
-FAIL(Error::GcodeUnsupportedCommand);
-   
-}
-
     // bit_false(value_words,bit(GCodeWord::F)); // NOTE: Single-meaning value word. Set at end of error-checking.
     // [4. Set spindle speed ]: S is negative (done.)
     if (bit_isfalse(value_words, bit(GCodeWord::S))) {
@@ -928,6 +859,14 @@ FAIL(Error::GcodeUnsupportedCommand);
         }
         bit_false(value_words, bit(GCodeWord::E));
         bit_false(value_words, bit(GCodeWord::Q));
+    }
+    // Handle RGB LED M-code error checking
+    if (gc_block.modal.rgb_led != RgbLedMode::Off) {
+        // Check that a valid O word exists when setting an LED
+        if (bit_isfalse(value_words, bit(GCodeWord::O))) {
+            FAIL(Error::GcodeValueWordMissing); // O word required for LED control
+        }
+        bit_false(value_words, bit(GCodeWord::O)); // Clear the O word after using it
     }
     // [11. Set active plane ]: N/A
     switch (gc_block.modal.plane_select) {
@@ -1368,23 +1307,6 @@ FAIL(Error::GcodeUnsupportedCommand);
     plan_line_data_t  plan_data;
     plan_line_data_t* pl_data = &plan_data;
     memset(pl_data, 0, sizeof(plan_line_data_t));  // Zero pl_data struct
-
-
-    if(axis_command == AxisCommand::Module)
-    {
-        pl_data->led = static_cast<uint8_t>(gc_block.modal.module);
-        pl_data->motion.rapidMotion = 1;
-        pl_data->colour_code = gc_block.values.o;
-
-        plan_buffer_line(last_position,pl_data);
-        protocol_buffer_synchronize();
-
-        mc_module_control(pl_data);
-    
-
-    }
-
-
     // Intercept jog commands and complete error checking for valid jog commands and execute.
     // NOTE: G-code parser state is not updated, except the position to ensure sequential jog
     // targets are computed correctly. The final parser position after a jog is updated in
@@ -1535,6 +1457,35 @@ FAIL(Error::GcodeUnsupportedCommand);
             }
         } else {
             FAIL(Error::PParamMaxExceeded);
+        }
+    }
+
+    // Update RGB LED state
+    if (gc_state.modal.rgb_led != gc_block.modal.rgb_led) {
+        gc_state.modal.rgb_led = gc_block.modal.rgb_led;
+        
+        // Handle each mode directly with the new RgbLedCmd enum
+        switch (gc_state.modal.rgb_led) {
+            case RgbLedMode::Off:
+                handle_rgb_led_command(RgbLedCmd::Off, 0);
+                gc_state.rgb_color = 0;
+                break;
+            case RgbLedMode::Led1:
+                handle_rgb_led_command(RgbLedCmd::Led1, gc_block.values.o);
+                gc_state.rgb_color = gc_block.values.o;
+                break;
+            case RgbLedMode::Led2:
+                handle_rgb_led_command(RgbLedCmd::Led2, gc_block.values.o);
+                gc_state.rgb_color = gc_block.values.o;
+                break;
+            case RgbLedMode::Led3:
+                handle_rgb_led_command(RgbLedCmd::Led3, gc_block.values.o);
+                gc_state.rgb_color = gc_block.values.o;
+                break;
+            case RgbLedMode::Led4:
+                handle_rgb_led_command(RgbLedCmd::Led4, gc_block.values.o);
+                gc_state.rgb_color = gc_block.values.o;
+                break;
         }
     }
 
@@ -1722,6 +1673,20 @@ FAIL(Error::GcodeUnsupportedCommand);
             break;
     }
     gc_state.modal.program_flow = ProgramFlow::Running;  // Reset program flow.
+
+    // Update RGB LED state
+    if (gc_state.modal.rgb_led != gc_block.modal.rgb_led) {
+        gc_state.modal.rgb_led = gc_block.modal.rgb_led;
+        
+        // Only update color if LED is enabled
+        if (gc_state.modal.rgb_led != RgbLedMode::Off) {
+            // Store hex color value for execution
+            gc_state.rgb_color = gc_block.values.o;
+        } else {
+            gc_state.rgb_color = 0; // Clear color when LED is off
+        }
+        
+    }
 
     // TODO: % to denote start of program.
     return Error::Ok;

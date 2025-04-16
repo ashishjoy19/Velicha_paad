@@ -953,3 +953,10 @@ float* get_wco() {
     }
     return wco;
 }
+
+// Add the missing report_realtime_debug function
+void report_realtime_debug() {
+    // This is a stub function that was being called but was not defined
+    // You can add debug information here as needed
+    Serial.println("DEBUG: realtime debug called");
+}

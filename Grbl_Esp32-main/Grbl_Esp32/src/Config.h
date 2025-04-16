@@ -289,7 +289,7 @@ static const uint8_t NHomingLocateCycle = 1;  // Integer (1-128)
 // ADVANCED CONFIGURATION OPTIONS:
 
 // Enables code for debugging purposes. Not for general use and always in constant flux.
-// #define DEBUG // Uncomment to enable. Default disabled.
+#define DEBUG // Uncomment to enable. Default disabled.
 
 // Configure rapid, feed, and spindle override settings. These values define the max and min
 // allowable override values and the coarse and fine increments per command received. Please

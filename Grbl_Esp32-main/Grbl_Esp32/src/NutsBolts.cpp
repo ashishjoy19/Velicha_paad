@@ -48,6 +48,29 @@ uint8_t read_float(const char* line, uint8_t* char_counter, float* float_ptr) {
         c = *ptr++;
     }
 
+    // Check for hexadecimal notation (0x prefix) - special case for RGB LED 
+    if (c == '0' && (*ptr == 'x' || *ptr == 'X')) {
+        ptr++; // Skip the 'x' character
+        uint32_t hex_val = 0;
+        // Parse hexadecimal digits
+        while (1) {
+            c = *ptr++;
+            if (c >= '0' && c <= '9') {
+                hex_val = (hex_val << 4) | (c - '0');
+            } else if (c >= 'A' && c <= 'F') {
+                hex_val = (hex_val << 4) | (c - 'A' + 10);
+            } else if (c >= 'a' && c <= 'f') {
+                hex_val = (hex_val << 4) | (c - 'a' + 10);
+            } else {
+                // Not a hex digit, end of the number
+                break;
+            }
+        }
+        *float_ptr = (float)hex_val;
+        *char_counter = ptr - line - 1;  // Set char_counter to next statement
+        return true;
+    }
+    
     // Extract number into fast integer. Track decimal in terms of exponent value.
     uint32_t intval    = 0;
     int8_t   exp       = 0;

@@ -485,17 +485,6 @@ void mc_parking_motion(float* parking_target, plan_line_data_t* pl_data) {
     }
 }
 
-void mc_module_control(plan_line_data_t* pl_data){
-    plan_sync_position();
-
-    char buffer[15];
-
-    sprintf(buffer, "M%d #%06X\n", pl_data->led, pl_data->colour_code);
-    
-    sendMessage(buffer);
-
-}
-
 #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
 void mc_override_ctrl_update(uint8_t override_state) {
     // Finish all queued commands before altering override control state
@@ -555,5 +544,72 @@ void mc_reset() {
         }
 #endif
     }
+}
 
+// Send RGB LED command to end effector via Serial2 and wait for acknowledgment
+static bool wait_for_led_ack() {
+    // Wait up to 100ms for acknowledgment
+    uint32_t timeout = millis() + 100;
+    while (millis() < timeout) {
+        if (Serial2.available()) {
+            String response = Serial2.readStringUntil('\n');
+            if (response.startsWith("ok")) {
+                return true;
+            }
+        }
+        protocol_execute_realtime(); // Keep processing realtime commands
+        if (sys.abort) return false;
+    }
+    return false; // Timeout without acknowledgment
+}
+
+// Send RGB LED command to end effector via Serial2
+void handle_rgb_led_command(RgbLedCmd cmd, uint32_t color) {
+    const char* cmdStr = nullptr;
+    bool ack = false;
+    
+    // Log the incoming command and color value directly to Serial
+    Serial.print("DEBUG: RGB LED Command: ");
+    Serial.print(static_cast<int>(cmd));
+    Serial.print(", Color Value: 0x");
+    Serial.print(color, HEX);
+    Serial.print(" (");
+    Serial.print(color);
+    Serial.println(" decimal)");
+    
+    switch (cmd) {
+        case RgbLedCmd::Led1:
+            cmdStr = "M201 O%06X\n";
+            break;
+        case RgbLedCmd::Led2:
+            cmdStr = "M202 O%06X\n";
+            break;
+        case RgbLedCmd::Led3:
+            cmdStr = "M203 O%06X\n";
+            break;
+        case RgbLedCmd::Led4:
+            cmdStr = "M204 O%06X\n";
+            break;
+        case RgbLedCmd::Off:
+            Serial.println("DEBUG: Sending: M205");
+            Serial2.print("M205\n");
+            ack = wait_for_led_ack();
+            Serial.print("DEBUG: LED Command ACK: ");
+            Serial.println(ack ? "Received" : "Timeout");
+            return;
+        default:
+            Serial.println("DEBUG: Unknown RGB LED command");
+            return;
+    }
+    
+    if (cmdStr) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), cmdStr, color);
+        Serial.print("DEBUG: Sending: ");
+        Serial.println(buf);
+        Serial2.print(buf);
+        ack = wait_for_led_ack();
+        Serial.print("DEBUG: LED Command ACK: ");
+        Serial.println(ack ? "Received" : "Timeout");
+    }
 }

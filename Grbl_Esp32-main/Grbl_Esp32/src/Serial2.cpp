@@ -18,9 +18,10 @@ void initSerial2() {
     } else {
         Serial.println("Timeout waiting for 'ok' from Serial2");
     }
+    
+    // Initialize Serial2 for RGB LED communication
+    Serial2.begin(115200);  // Use the same baud rate as your end effector expects
 }
-
-
 
 void sendMessage(const char* message) {
     // Send the message through Serial2
@@ -74,6 +75,26 @@ bool waitForModMessage(unsigned long timeout) {
     return false;
 }
 
-void send_colour_data(uint32_t colour_code){
-    // #%06X/n
+void send_colour_data(uint32_t colour_code) {
+    // Format the color code as a hexadecimal string
+    char buffer[20];
+    sprintf(buffer, "M202 O%06X", colour_code);
+    
+    // Print debug messages to Serial so we can monitor what's happening
+    Serial.print("DEBUG: Sending RGB LED command: ");
+    Serial.println(buffer);
+    Serial.print("DEBUG: Colour code (decimal): ");
+    Serial.println(colour_code);
+    Serial.print("DEBUG: Colour code (hex): 0x");
+    Serial.println(colour_code, HEX);
+    
+    // Send the formatted command to Serial2
+    Serial2.println(buffer);
+    
+    // Wait for acknowledgment
+    if (!waitforOK(5000)) {
+        Serial.println("DEBUG: Received OK response from RGB LED controller");
+    } else {
+        Serial.println("DEBUG: Timeout waiting for OK response from RGB LED controller");
+    }
 }

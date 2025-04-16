@@ -65,10 +65,9 @@ const char* const GRBL_VERSION_BUILD = "20211103";
 #include "WebUI/WebSettings.h"
 
 #include "UserOutput.h"
+#include "Serial2.h"
 
 #include <Wire.h>
-
-#include "Serial2.h"
 
 // Do not guard this because it is needed for local files too
 #include "SDCard.h"

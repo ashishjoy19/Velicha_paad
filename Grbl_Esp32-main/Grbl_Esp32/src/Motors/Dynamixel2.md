@@ -24,8 +24,6 @@ You should set the the axis speed and acceleration to what the servo can handle.
 #define DXL_COUNT_MAX           3072 // (an override...not required)
 ```
 
-
-
 You need to specify the TXD, RXD and RTS pins you want to use for the half duplex communications bus.
 
 The `SERVO_TIMER_INTERVAL` sets the time in milliseconds between updates. At each interval 1 message per servo is sent. If you try to update too fast you will see errors reported to the USB/Serial port. 75ms seems like a good rate for 3 servos. Adjust per your count.
@@ -42,13 +40,6 @@ Dynamixel servos, don't typically need to be homed. This is because they can det
 
 ## Manual Moves
 
-Whenever Grbl has the motors disabled, you can manually home the servos. Since they are closed loop and report current position, they will report back where they have been moved to and update Grbl. This is controlled by the $Stepper/IdleDelay setting. 
+Whenever Grbl has the motors disabled, you can manually home the servos. Since they are closed loop and report current position, they will report back where they have been moved to and update Grbl. This is controlled by the $Stepper/IdleDelay setting.
 
 The resolution is 4096 units per 360°. This is likely to be a lot coarser than Grbl's internal representation. Therefore if you send a servo to 15. It may change a little after being update from the servo when disabled. The servo may report back 14.8 after being sent to 15.
-
-
-
-
-
-
-
