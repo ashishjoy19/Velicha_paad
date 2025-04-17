@@ -548,7 +548,7 @@ void mc_reset() {
 }
 
 void mc_rgb_controll(plan_line_data_t* pl_data) {
-    grbl_send(CLIENT_SERIAL, "Motioncontroll\n");
+
     plan_reset();  // Reset planner buffer. Zero planner positions. Ensure probing motion is cleared.
     plan_sync_position();  // Sync planner position to current machine position.
     char buffer[32];
@@ -558,7 +558,7 @@ void mc_rgb_controll(plan_line_data_t* pl_data) {
         sendMessage(buffer);
     }
 
-    if (pl_data->brush >= 205)
+    if (pl_data->brush == 205)
     {
         sprintf(buffer, "M%d", pl_data->brush);
         sendMessage(buffer);

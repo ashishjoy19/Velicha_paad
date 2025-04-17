@@ -10,8 +10,7 @@ void initSerial2() {
     USE_SERIAL.println("initialised");
 }
 
-void sendMessage(const char* message) {
-    // Send the message through Serial2
-    Serial2.println(message);
-    USE_SERIAL.println(message);
+void sendMessage(const char* msg) {
+    grbl_send(CLIENT_SERIAL, msg);
+    Serial2.print(msg);
 }

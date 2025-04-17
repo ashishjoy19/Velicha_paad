@@ -186,15 +186,18 @@ Error gc_execute_line(char* line, uint8_t client) {
             FAIL(Error::ExpectedCommandLetter);  // [Expected word letter]
         }
         char_counter++;
-        // Special handling for O#hex
-        if (letter == 'O' && line[char_counter] == '#') {
-            char hexstr[9] = {0}; // Enough for 8 hex digits + null
+        // Special handling for O#hex (accepts both upper/lowercase hex digits)
+        if (letter == 'O' && (line[char_counter] == '#' || line[char_counter] == '#')) {
+            char hexstr[9] = {0}; // 8 hex digits max + null
             int hexlen = 0;
             char_counter++; // skip '#'
             while (isxdigit(line[char_counter]) && hexlen < 8) {
                 hexstr[hexlen++] = line[char_counter++];
             }
             hexstr[hexlen] = '\0';
+            if (hexlen == 0) {
+                FAIL(Error::BadNumberFormat); // No hex digits after #
+            }
             value = (float)strtoul(hexstr, NULL, 16);
         } else {
             if (!read_float(line, &char_counter, &value)) {
@@ -1680,14 +1683,26 @@ Error gc_execute_line(char* line, uint8_t client) {
     if(axis_command == AxisCommand::Module)
     {
         // USE_SERIAL.print(" Execute part ");
-        pl_data->brush = static_cast<uint8_t>(gc_block.modal.module);
+        pl_data->brush = static_cast<uint16_t>(gc_block.modal.module); // Fix: store 201-205
         pl_data->motion.rapidMotion = 1;  // Set rapid motion flag.
         pl_data->color = static_cast<char32_t>(gc_block.values.o);
+        
+        char brush_str[10];
+        char color_str[10];
+        sprintf(color_str, "%d \n", pl_data->color);
+        sprintf(brush_str, "%d", pl_data->brush);
+        grbl_send(client, "brush_str");
+        grbl_send(client, brush_str);
+        grbl_send(client, "color_str");
+        grbl_send(client, color_str);
         
         plan_buffer_line(last_position,pl_data); // Send the brush command to the planner.
         protocol_buffer_synchronize();
 
         mc_rgb_controll(pl_data);
+
+        // Clear the O word from value_words after using it
+        bit_false(value_words, bit(GCodeWord::O));
     }
 
     gc_state.modal.program_flow = ProgramFlow::Running;  // Reset program flow.

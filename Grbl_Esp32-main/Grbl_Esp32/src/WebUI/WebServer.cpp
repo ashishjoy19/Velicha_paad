@@ -135,6 +135,10 @@ namespace WebUI {
         //Websocket management
         //_webserver->addHandler(_web_socket);
 
+        _webserver->sendHeader("Access-Control-Allow-Origin", "*");
+        _webserver->sendHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+        _webserver->sendHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+
         //Web server handlers
         //trick to catch command line on "/" before file being processed
         _webserver->on("/", HTTP_ANY, handle_root);

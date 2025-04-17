@@ -60,7 +60,7 @@ typedef struct {
     CoolantState coolant;  // Coolant state
     int8_t       brush;    //brush number for RGB LED
     char32_t     color;    // RGB color value for LED
-    
+
 #ifdef USE_LINE_NUMBERS
     int32_t line_number;  // Block line number for real-time reporting. Copied from pl_line_data.
 #endif
@@ -91,7 +91,7 @@ typedef struct {
     PlMotion     motion;         // Bitflag variable to indicate motion conditions. See defines above.
     SpindleState spindle;        // Spindle enable state
     CoolantState coolant;        // Coolant state
-    int8_t       brush;          //brush number for RGB LED
+    uint16_t     brush;          //brush number for RGB LED
     char32_t     color;          // RGB color value for LED
 #ifdef USE_LINE_NUMBERS
     int32_t line_number;  // Desired line number to report when executing.

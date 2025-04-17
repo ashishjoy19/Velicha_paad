@@ -234,12 +234,12 @@ enum GCParserFlags {
     GCParserLaserIsMotion  = bit(7),
 };
 
-enum Module : uint8_t {
-    OFF=0,
-    Brush1=1,
-    Brush2=2,
-    Brush3=3,
-    Brush4=4,
+enum Module : uint16_t {
+    Brush1=201,
+    Brush2=202,
+    Brush3=203,
+    Brush4=204,
+    OFF=205,
 };
 
 // Various places in the code access saved coordinate system data
@@ -286,7 +286,7 @@ typedef struct {
     ToolChange   tool_change;   // {M6}
     IoControl    io_control;    // {M62, M63, M67}
     Override     override;      // {M56}
-    Module       module;       // {M56}
+    Module       module;       
 
 } gc_modal_t;
 
