@@ -306,7 +306,7 @@ uint8_t plan_buffer_line(float* target, plan_line_data_t* pl_data) {
     block->spindle       = pl_data->spindle;
     block->spindle_speed = pl_data->spindle_speed;
     block->brush         = pl_data->brush;
-    block->color         = pl_data->color;
+    // block->color         = pl_data->color;
 
 
 #ifdef USE_LINE_NUMBERS

@@ -1,3 +1,7 @@
 {
-    "idf.portWin": "COM15"
+    "files.associations": {
+        "*.py": "python",
+        "*.tcc": "cpp",
+        "string": "cpp"
+    }
 }
