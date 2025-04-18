@@ -21,9 +21,3 @@ __vm/
 *.suo
 Grbl_Esp32.ino.cpp
 /packages
-VisualStudio.md
-build-all.ps1
-build-all.sh
-build-all.py
-build-machine,py
-builder.sh
