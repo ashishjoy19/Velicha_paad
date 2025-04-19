@@ -545,24 +545,3 @@ void mc_reset() {
 #endif
     }
 }
-
-void mc_rgb_controll(plan_line_data_t* pl_data) {
-
-    plan_reset();  // Reset planner buffer. Zero planner positions. Ensure probing motion is cleared.
-    plan_sync_position();  // Sync planner position to current machine position.
-    char buffer[32];
-
-    if (pl_data->brush >=201 && pl_data->brush <= 206){
-        sprintf(buffer, "M%d", pl_data->brush);
-        sendMessage(buffer);
-    }
-
-    if (pl_data->brush == 200)
-    {
-        sprintf(buffer, "M%d", pl_data->brush);
-        sendMessage(buffer);
-    }
-
-    protocol_buffer_synchronize(); 
-
-}

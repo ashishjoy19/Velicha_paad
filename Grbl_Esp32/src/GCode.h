@@ -49,7 +49,6 @@ enum class ModalGroup : uint8_t {
     MM8  = 13,  // [M7,M8,M9] Coolant control
     MM9  = 14,  // [M56] Override control
     MM10 = 15,  // [M62, M63, M64, M65, M67, M68] User Defined http://linuxcnc.org/docs/html/gcode/overview.html#_modal_groups
-    MM11 = 16,  // [M201-5] Module control
 };
 
 // Command actions for within execution-type modal groups (motion, stopping, non-modal). Used
@@ -211,8 +210,6 @@ enum class GCodeWord : uint8_t {
     A = 15,
     B = 16,
     C = 17,
-    O = 18,
-    U = 19,
 };
 
 // GCode parser position updating flags
@@ -235,20 +232,11 @@ enum GCParserFlags {
     GCParserLaserIsMotion  = bit(7),
 };
 
-enum Module : uint16_t {
-    OFF    = 200,
-    Brush1 = 201,
-    Brush2 = 202,
-    Brush3 = 203,
-    Brush4 = 204,
-    Brush5 = 205,
-    Brush6 = 206,
-};
 // Various places in the code access saved coordinate system data
 // by a small integer index according to the values below.
-enum CoordIndex : uint8_t {
+enum CoordIndex : uint8_t{
     Begin = 0,
-    G54   = Begin,
+    G54 = Begin,
     G55,
     G56,
     G57,
@@ -268,7 +256,7 @@ enum CoordIndex : uint8_t {
 };
 
 // Allow iteration over CoordIndex values
-CoordIndex& operator++(CoordIndex& i);
+CoordIndex& operator ++ (CoordIndex& i);
 
 // NOTE: When this struct is zeroed, the 0 values in the above types set the system defaults.
 typedef struct {
@@ -288,23 +276,20 @@ typedef struct {
     ToolChange   tool_change;   // {M6}
     IoControl    io_control;    // {M62, M63, M67}
     Override     override;      // {M56}
-    Module       module;
 } gc_modal_t;
 
 typedef struct {
-    uint8_t  e;                // M67
-    float    f;                // Feed
-    float    ijk[3];           // I,J,K Axis arc offsets - only 3 are possible
-    uint8_t  l;                // G10 or canned cycles parameters
-    int32_t  n;                // Line number
-    float    p;                // G10 or dwell parameters
-    float    q;                // M67
-    float    r;                // Arc radius
-    float    s;                // Spindle speed
-    uint8_t  t;                // Tool selection
-    float    xyz[MAX_N_AXIS];  // X,Y,Z Translational axes
-    uint32_t    o;                // RGB color value for LED
-    uint16_t u;                // numbers for brushes 1-4
+    uint8_t e;                // M67
+    float   f;                // Feed
+    float   ijk[3];           // I,J,K Axis arc offsets - only 3 are possible
+    uint8_t l;                // G10 or canned cycles parameters
+    int32_t n;                // Line number
+    float   p;                // G10 or dwell parameters
+    float   q;                // M67
+    float   r;                // Arc radius
+    float   s;                // Spindle speed
+    uint8_t t;                // Tool selection
+    float   xyz[MAX_N_AXIS];  // X,Y,Z Translational axes
 } gc_values_t;
 
 typedef struct {
@@ -337,7 +322,6 @@ enum class AxisCommand : uint8_t {
     NonModal         = 1,
     MotionMode       = 2,
     ToolLengthOffset = 3,
-    Module           = 4,
 };
 
 // Initialize the parser

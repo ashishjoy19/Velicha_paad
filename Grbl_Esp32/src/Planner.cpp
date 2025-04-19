@@ -51,8 +51,6 @@ uint8_t plan_next_block_index(uint8_t block_index) {
     return block_index;
 }
 
-float last_position[MAX_N_AXIS] = {0};  
-
 // Returns the index of the previous block in the ring buffer
 static uint8_t plan_prev_block_index(uint8_t block_index) {
     if (block_index == 0) {
@@ -305,9 +303,6 @@ uint8_t plan_buffer_line(float* target, plan_line_data_t* pl_data) {
     block->coolant       = pl_data->coolant;
     block->spindle       = pl_data->spindle;
     block->spindle_speed = pl_data->spindle_speed;
-    block->brush         = pl_data->brush;
-    // block->color         = pl_data->color;
-
 
 #ifdef USE_LINE_NUMBERS
     block->line_number = pl_data->line_number;
@@ -340,11 +335,6 @@ uint8_t plan_buffer_line(float* target, plan_line_data_t* pl_data) {
     // Bail if this is a zero-length block. Highly unlikely to occur.
     if (block->step_event_count == 0) {
         return PLAN_EMPTY_BLOCK;
-    }
-
-    // Check if the block is a system motion. If so, set the system motion bit and set the target position to the current position. 
-    for (size_t idx = 0; idx < MAX_N_AXIS; idx++) {
-        last_position[idx] = target[idx];
     }
 
     // Calculate the unit vector of the line move and the block maximum feed rate and acceleration scaled

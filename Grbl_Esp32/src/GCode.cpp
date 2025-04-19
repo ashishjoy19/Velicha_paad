@@ -547,41 +547,6 @@ Error gc_execute_line(char* line, uint8_t client) {
                         gc_block.modal.io_control = IoControl::SetAnalogImmediate;
                         mg_word_bit               = ModalGroup::MM10;
                         break;
-                    case 200:
-                        mg_word_bit               = ModalGroup::MM11;
-                        gc_block.modal.module     = Module::OFF;
-                        axis_command              = AxisCommand::Module;
-                    case 201:
-                        mg_word_bit               = ModalGroup::MM11;
-                        gc_block.modal.module     = Module::Brush1;
-                        axis_command              = AxisCommand::Module;
-                        break;
-                    case 202:
-                        mg_word_bit               = ModalGroup::MM11;
-                        gc_block.modal.module     = Module::Brush2;
-                        axis_command              = AxisCommand::Module;
-                        break;
-                    case 203:
-                        mg_word_bit               = ModalGroup::MM11;
-                        gc_block.modal.module     = Module::Brush3;
-                        axis_command              = AxisCommand::Module;
-                        break;
-                    case 204:
-                        mg_word_bit               = ModalGroup::MM11;
-                        gc_block.modal.module     = Module::Brush4;
-                        axis_command              = AxisCommand::Module;
-                        break;
-                    case 205:
-                        mg_word_bit               = ModalGroup::MM11;
-                        gc_block.modal.module     = Module::Brush5;
-                        axis_command              = AxisCommand::Module;
-                        break;
-                    case 206:
-                        mg_word_bit               = ModalGroup::MM11;
-                        gc_block.modal.module     = Module::Brush6;
-                        axis_command              = AxisCommand::Module;
-                        break;
-                    
                     default:
                         FAIL(Error::GcodeUnsupportedCommand);  // [Unsupported M command]
                 }
@@ -713,14 +678,6 @@ Error gc_execute_line(char* line, uint8_t client) {
                         } else {
                             FAIL(Error::GcodeUnsupportedCommand);
                         }
-                        break;
-                    // case 'O'://used to store the color of the line in the gcode file
-                    //     axis_word_bit = GCodeWord::O;
-                    //     gc_block.values.o = value;
-                    //     break;
-                    case 'U'://used to store numbers from 1-6 for mcommand m201-204
-                        axis_word_bit = GCodeWord::U;
-                        gc_block.values.u = int_value;
                         break;
                     default:
                         FAIL(Error::GcodeUnsupportedCommand);
@@ -1305,21 +1262,6 @@ Error gc_execute_line(char* line, uint8_t client) {
     if (value_words) {
         FAIL(Error::GcodeUnusedWords);  // [Unused words]
     }
-
-    switch (gc_block.modal.module) {
-        case Module::Brush1:
-        case Module::Brush2:
-        case Module::Brush3:
-        case Module::Brush4:
-        case Module::Brush5:
-        case Module::Brush6:
-        case Module::OFF:
-        // grbl_send(client, "error check\n");
-            break;
-        default:
-            FAIL(Error::GcodeUnsupportedCommand);  // Undefined command or parameter
-    }
-    
     /* -------------------------------------------------------------------------------------
        STEP 4: EXECUTE!!
        Assumes that all error-checking has been completed and no failure modes exist. We just
@@ -1665,27 +1607,6 @@ Error gc_execute_line(char* line, uint8_t client) {
             user_m30();
             break;
     }
-
-    if(axis_command == AxisCommand::Module)
-    {
-        // Handle proper GCode module commands (M201-M205)
-
-        // pl_data->color = static_cast<uint16_t>(gc_block.values.u);
-        pl_data->brush = static_cast<uint16_t>(gc_block.modal.module);
-        pl_data->motion.rapidMotion = 1;
-        
-        // char brush_str[20];
-        // char color_str[20];
-        // sprintf(color_str, "Color: %d", pl_data->color);
-        // sprintf(brush_str, "Brush: %d", pl_data->brush);
-        // grbl_msg_sendf(CLIENT_SERIAL, MsgLevel::Info, "%s, %s", brush_str, color_str);
-        
-        plan_buffer_line(last_position, pl_data);
-        protocol_buffer_synchronize();
-
-        mc_rgb_controll(pl_data);
-    }
-
     gc_state.modal.program_flow = ProgramFlow::Running;  // Reset program flow.
 
     // TODO: % to denote start of program.

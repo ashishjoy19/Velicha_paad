@@ -31,7 +31,7 @@
 
 // #define MIDTBOT         // applies the midTbot geometry correction to the CoreXY kinematics 
 
-#define SPINDLE_TYPE    SpindleType::NONE
+#define SPINDLE_TYPE    SpindleType::PWM
 
 #define X_STEP_PIN      GPIO_NUM_12
 #define Y_STEP_PIN      GPIO_NUM_14
@@ -43,10 +43,6 @@
 
 #define X_LIMIT_PIN     GPIO_NUM_21
 #define Y_LIMIT_PIN     GPIO_NUM_4
-
-// #define Z_SERVO_PIN             GPIO_NUM_27
-
-#define SPINDLE_TYPE SpindleType::NONE
 
 // defaults
 #define DEFAULT_HOMING_CYCLE_0      bit(Z_AXIS)

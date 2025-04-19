@@ -28,6 +28,7 @@
 
 */
 #include "Spindle.h"
+#include "src/Grbl.h"
 
 #include "NullSpindle.h"
 #include "PWMSpindle.h"
@@ -53,7 +54,7 @@ namespace Spindles {
     Huanyang huanyang;
     H2A      h2a;
     BESC     besc;
-    _10v     _10v;
+    // _10v     _10v;
     YL620    yl620;
     L510     l510;
 
@@ -77,9 +78,9 @@ namespace Spindles {
             case SpindleType::BESC:
                 spindle = &besc;
                 break;
-            case SpindleType::_10V:
-                spindle = &_10v;
-                break;
+            // case SpindleType::_10V:
+            //     spindle = &_10v;
+            //     break;
             case SpindleType::H2A:
                 spindle = &h2a;
                 break;
@@ -108,8 +109,11 @@ namespace Spindles {
         if (sys.state == State::CheckMode) {
             return;
         }
+        char buffer[32];
         protocol_buffer_synchronize();  // Empty planner buffer to ensure spindle is set when programmed.
         set_state(state, rpm);
+        sprintf(buffer, "M%d S%d \n", static_cast<int>(state), static_cast<int32_t>(rpm));
+        sendMessage(buffer);
     }
 
     void Spindle::deinit() { stop(); }

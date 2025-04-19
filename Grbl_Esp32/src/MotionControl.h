@@ -77,5 +77,3 @@ enum class SquaringMode : uint8_t {
 };
 
 extern SquaringMode ganged_mode;
-
-void mc_rgb_controll(plan_line_data_t* pl_data);
