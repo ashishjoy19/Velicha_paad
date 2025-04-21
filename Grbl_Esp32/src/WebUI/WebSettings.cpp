@@ -804,6 +804,57 @@ namespace WebUI {
         SD.end();
         return Error::Ok;
     }
+
+   // Performs a dry run check of an SD file without executing it
+   static Error checkSDFile(char* parameter, AuthenticationLevel auth_level) {  // ESP221
+    if (sys.state != State::Idle && sys.state != State::Alarm) {
+        return Error::IdleError;
+    }
+    
+    if (*parameter == '\0') {
+        webPrintln("Missing file name!");
+        return Error::InvalidValue;
+    }
+
+    // Save current state and enable check mode
+    bool was_check_mode = sys.state == State::CheckMode;
+    if (!was_check_mode) {
+        sys.state = State::CheckMode;
+        webPrintln("Starting G-code validation...");
+    }
+
+    // Run the file in check mode
+    Error err = openSDFile(parameter);
+    if (err == Error::Ok) {
+        char fileLine[255];
+        SD_client = (espresponse) ? espresponse->client() : CLIENT_ALL;
+        SD_auth_level = auth_level;
+
+        while (readFileLine(fileLine, 255)) {
+            err = execute_line(fileLine, SD_client, SD_auth_level);
+            if (err != Error::Ok) {
+                break;
+            }
+        }
+        closeFile();
+
+        if (err == Error::Ok) {
+            webPrintln("G-code validation successful - no errors found");
+        } else {
+            grbl_sendf(CLIENT_ALL, "G-code validation failed: %s\r\n", errorString(err));
+        }
+    }
+
+    // Restore previous state if we enabled check mode
+    if (!was_check_mode) {
+        sys.state = State::Idle;
+        sys.abort = true;  // Trigger graceful exit of check mode
+        webPrintln("Check mode disabled");
+    }
+
+    return err;
+}
+
 #endif
 
     void listDirLocalFS(fs::FS& fs, const char* dirname, uint8_t levels, uint8_t client) {
@@ -1081,6 +1132,7 @@ namespace WebUI {
 #ifdef ENABLE_SD_CARD
         new WebCommand("path", WEBCMD, WU, "ESP221", "SD/Show", showSDFile);
         new WebCommand("path", WEBCMD, WU, "ESP220", "SD/Run", runSDFile);
+        new WebCommand("path", WEBCMD, WU, "ESP221", "SD/Check", checkSDFile);
         new WebCommand("file_or_directory_path", WEBCMD, WU, "ESP215", "SD/Delete", deleteSDObject);
         new WebCommand(NULL, WEBCMD, WU, "ESP210", "SD/List", listSDFiles);
 #endif
