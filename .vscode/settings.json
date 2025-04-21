@@ -3,5 +3,6 @@
         "*.py": "python",
         "*.tcc": "cpp",
         "string": "cpp"
-    }
+    },
+    "idf.portWin": "COM15"
 }

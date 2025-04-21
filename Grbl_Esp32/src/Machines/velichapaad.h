@@ -25,7 +25,7 @@
     along with Grbl_ESP32.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define MACHINE_NAME "Velichapaadu"
+#define MACHINE_NAME "Velichapaad"
 
 #define CUSTOM_CODE_FILENAME    "../Custom/CoreXY.cpp"
 
